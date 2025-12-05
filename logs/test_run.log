@@ -1,0 +1,33 @@
+[2025-12-05T05:46:01.160214Z] RUN: run_test.bat input_backup.py
+[2025-12-05T05:46:01.267947Z] EXIT 1
+VULNERABILITIES FOUND in input_backup.py:
+ - hardcoded_secret
+ - md5_hash
+ - sql_injection
+ - subprocess_shell
+ - requests_no_timeout
+ - debug_mode
+ - open_yaml_arbitrary
+
+[2025-12-05T05:46:01.268787Z] RUN: run_test.bat inputs.py
+[2025-12-05T05:46:01.367963Z] EXIT 1
+VULNERABILITIES FOUND in inputs.py:
+ - requests_no_timeout
+
+FINAL STATUS: TEST FAILED
+[2025-12-05T05:46:30.464148Z] RUN: run_test.bat input_backup.py
+[2025-12-05T05:46:30.592132Z] EXIT 1
+VULNERABILITIES FOUND in input_backup.py:
+ - hardcoded_secret
+ - md5_hash
+ - sql_injection
+ - subprocess_shell
+ - debug_mode
+ - open_yaml_arbitrary
+ - requests_no_timeout
+
+[2025-12-05T05:46:30.593110Z] RUN: run_test.bat inputs.py
+[2025-12-05T05:46:30.690385Z] EXIT 0
+No high-level issues found in inputs.py.
+
+FINAL STATUS: TEST PASSED
