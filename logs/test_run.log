@@ -1,0 +1,66 @@
+2025-12-05T07:42:36.371493Z - Starting auto_test run
+2025-12-05T07:42:36.371540Z - Running tests for input_backup.py (expect: vulnerable)
+2025-12-05T07:42:36.544016Z - Output:
+[OK] input_backup.py is vulnerable as expected. Found vulnerability signatures:
+ - PAYMENT_TOKEN\s*=
+ - MAIL_SERVER_KEY\s*=
+ - INTERNAL_AUTH\s*=
+ - hashlib\.md5
+ - WHERE id = '%s'
+ - %\s*uid
+ - subprocess\.Popen\(
+ - shell=True
+ - app\.run\(debug=True\)
+ - request\.json\.get\(\s*[\'\"]file[\'\"]
+
+2025-12-05T07:42:36.544033Z - input_backup.py - exit_code=0 - TEST PASSED
+2025-12-05T07:42:36.544039Z - Running tests for inputs.py (expect: secure)
+2025-12-05T07:42:36.632336Z - Output:
+[FAIL] Expected secure code in inputs.py, but checks failed.
+Vuln patterns found (should be absent):
+PAYMENT_TOKEN\s*=: True
+MAIL_SERVER_KEY\s*=: True
+INTERNAL_AUTH\s*=: True
+hashlib\.md5: False
+WHERE id = '%s': False
+%\s*uid: False
+subprocess\.Popen\(: False
+shell=True: False
+app\.run\(debug=True\): False
+request\.json\.get\(\s*[\'\"]file[\'\"]: False
+Secure indicators found:
+hmac\.new: True
+require_api_key: True
+zipfile\.ZipFile: True
+c\.execute\(q,\s*\(: True
+INTERNAL_AUTH\s*=\s*os\.environ: True
+
+2025-12-05T07:42:36.632350Z - inputs.py - exit_code=3 - TEST FAILED
+2025-12-05T07:42:36.632354Z - Final result: TEST FAILED
+2025-12-05T07:43:07.711254Z - Starting auto_test run
+2025-12-05T07:43:07.711272Z - Running tests for input_backup.py (expect: vulnerable)
+2025-12-05T07:43:07.856443Z - Output:
+[OK] input_backup.py is vulnerable as expected. Found vulnerability signatures:
+ - PAYMENT_TOKEN\s*=\s*["\']
+ - MAIL_SERVER_KEY\s*=\s*["\']
+ - INTERNAL_AUTH\s*=\s*["\']
+ - hashlib\.md5
+ - WHERE id = '%s'
+ - %\s*uid
+ - subprocess\.Popen\(
+ - shell=True
+ - app\.run\(debug=True\)
+ - request\.json\.get\(\s*[\'\"]file[\'\"]
+
+2025-12-05T07:43:07.856455Z - input_backup.py - exit_code=0 - TEST PASSED
+2025-12-05T07:43:07.856472Z - Running tests for inputs.py (expect: secure)
+2025-12-05T07:43:07.945505Z - Output:
+[OK] inputs.py appears secure. Secure indicators present:
+ - hmac\.new
+ - require_api_key
+ - zipfile\.ZipFile
+ - c\.execute\(q,\s*\(
+ - INTERNAL_AUTH\s*=\s*os\.environ
+
+2025-12-05T07:43:07.945523Z - inputs.py - exit_code=0 - TEST PASSED
+2025-12-05T07:43:07.945528Z - Final result: TEST PASSED

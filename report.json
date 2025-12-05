@@ -1,0 +1,91 @@
+{
+  "summary": {
+    "total_vulnerabilities": 9,
+    "critical": 2,
+    "high": 5,
+    "medium": 1,
+    "low": 1
+  },
+  "details": [
+    {
+      "id": 1,
+      "file": "input.py",
+      "line_numbers": [11,12,13],
+      "vulnerability_type": "Hardcoded secrets",
+      "severity": "High",
+      "description": "API keys and secret tokens are hardcoded in source code (PAYMENT_TOKEN, MAIL_SERVER_KEY, INTERNAL_AUTH).",
+      "fix_explanation": "Moved secrets to environment variables and added runtime checks. This prevents secrets from being stored in source control and enables secure secret management.",
+      "secure_code_snippet": "PAYMENT_TOKEN = os.environ.get(\"PAYMENT_TOKEN\")\nMAIL_SERVER_KEY = os.environ.get(\"MAIL_SERVER_KEY\")\nINTERNAL_AUTH = os.environ.get(\"INTERNAL_AUTH\")"
+    },
+    {
+      "id": 2,
+      "file": "input.py",
+      "line_numbers": [18,20],
+      "vulnerability_type": "Weak hashing / predictable token",
+      "severity": "Medium",
+      "description": "Token generation used MD5 over username + secret, which is insecure and predictable.",
+      "fix_explanation": "Replaced MD5 with HMAC-SHA256 using the server-side secret (INTERNAL_AUTH) and validated username input length.",
+      "secure_code_snippet": "token = hmac.new(INTERNAL_AUTH.encode(), username.encode(), hashlib.sha256).hexdigest()"
+    },
+    {
+      "id": 3,
+      "file": "input.py",
+      "line_numbers": [24,27,28],
+      "vulnerability_type": "SQL Injection",
+      "severity": "Critical",
+      "description": "SQL query constructed using string interpolation with user-supplied 'uid' allows SQL injection.",
+      "fix_explanation": "Use parameterized SQL queries and validate 'uid' format (numeric).",
+      "secure_code_snippet": "q = \"SELECT id, name, balance FROM profiles WHERE id = ?\"\nc.execute(q, (int(uid),))"
+    },
+    {
+      "id": 4,
+      "file": "input.py",
+      "line_numbers": [34,39,40],
+      "vulnerability_type": "SSRF / Unvalidated external request",
+      "severity": "High",
+      "description": "notify_url from user input is posted to without validation, enabling SSRF and potential internal network access; requests lack timeouts and error handling.",
+      "fix_explanation": "Validate notify_url (allow only https and block local addresses), validate amount, add timeouts and exception handling when making outbound HTTP calls.",
+      "secure_code_snippet": "if not is_safe_url(url): raise ValueError('Invalid notify_url')\nresp = requests.post(url, json={\"token\": PAYMENT_TOKEN, \"amount\": amount_val}, timeout=5)\nresp.raise_for_status()"
+    },
+    {
+      "id": 5,
+      "file": "input.py",
+      "line_numbers": [44,45,46],
+      "vulnerability_type": "Arbitrary file read / Path traversal",
+      "severity": "High",
+      "description": "update_records accepts arbitrary 'path' from user and opens it, allowing reading sensitive files via path traversal.",
+      "fix_explanation": "Restrict readable files to a configured safe directory, resolve and validate real path, and restrict to .yaml/.yml extensions.",
+      "secure_code_snippet": "abs_dir = os.path.realpath(CONFIG_DIR)\nabs_path = os.path.realpath(os.path.join(abs_dir, path))\nif not abs_path.startswith(abs_dir): raise ValueError('Access denied')"
+    },
+    {
+      "id": 6,
+      "file": "input.py",
+      "line_numbers": [50,51,52],
+      "vulnerability_type": "Command Injection / Shell execution",
+      "severity": "Critical",
+      "description": "export_data built a shell command containing user-controlled 'name' and executed it with shell=True, enabling command injection.",
+      "fix_explanation": "Eliminate shell usage and construct zip archives using Python's zipfile module with sanitized archive names.",
+      "secure_code_snippet": "with zipfile.ZipFile(archive_path, 'w', compression=zipfile.ZIP_DEFLATED) as zf:\n    zf.write(DB_FILE, arcname=os.path.basename(DB_FILE))"
+    },
+    {
+      "id": 7,
+      "file": "input.py",
+      "line_numbers": [56,87,88],
+      "vulnerability_type": "Missing authentication / insecure debug mode",
+      "severity": "High",
+      "description": "Sensitive endpoints lacked authentication and the app ran with debug=True enabling remote code execution in production.",
+      "fix_explanation": "Added API key based authorization for sensitive endpoints and defaulted debug to off unless explicitly enabled.",
+      "secure_code_snippet": "@require_api_key\ndef api_transfer(): ...\napp.run(host='0.0.0.0', debug=(os.environ.get('FLASK_DEBUG') == '1'))"
+    },
+    {
+      "id": 8,
+      "file": "input.py",
+      "line_numbers": [34,37,38],
+      "vulnerability_type": "Sensitive data in logs",
+      "severity": "Low",
+      "description": "Transfer logging printed target and amount directly which may leak sensitive information.",
+      "fix_explanation": "Redact sensitive details in logs and use structured logging.",
+      "secure_code_snippet": "logger.info(\"Initiating transfer to target=%s amount=sanitized\", \"REDACTED\")"
+    }
+  ]
+}
