@@ -1,0 +1,81 @@
+{
+  "summary": {
+    "total_vulnerabilities": 7,
+    "critical": 3,
+    "high": 2,
+    "medium": 1,
+    "low": 1
+  },
+  "details": [
+    {
+      "id": 1,
+      "file": "inputs.py",
+      "line_numbers": [11,12,13],
+      "vulnerability_type": "Hardcoded Secrets",
+      "severity": "Critical",
+      "description": "Multiple API keys and secrets are hardcoded in source code, exposing sensitive credentials.",
+      "fix_explanation": "Moved secrets to environment variables and fail if missing to avoid storing credentials in source control.",
+      "secure_code_snippet": "PAYMENT_TOKEN = os.environ.get(\"PAYMENT_TOKEN\")"
+    },
+    {
+      "id": 2,
+      "file": "inputs.py",
+      "line_numbers": [18,19,20],
+      "vulnerability_type": "Weak Hashing (MD5)",
+      "severity": "High",
+      "description": "MD5 is used to derive authentication tokens which is cryptographically weak.",
+      "fix_explanation": "Replaced MD5 with HMAC-SHA256 using server-side secret to generate tokens securely.",
+      "secure_code_snippet": "hmac.new(INTERNAL_AUTH.encode(), username.encode(), hashlib.sha256).hexdigest()"
+    },
+    {
+      "id": 3,
+      "file": "inputs.py",
+      "line_numbers": [24,27,28],
+      "vulnerability_type": "SQL Injection",
+      "severity": "Critical",
+      "description": "User-controlled input is formatted directly into an SQL query using string interpolation.",
+      "fix_explanation": "Use parameterized SQL queries and validate uid as integer to prevent injection.",
+      "secure_code_snippet": "c.execute(\"SELECT id, name, balance FROM profiles WHERE id = ?\", (int(uid),))"
+    },
+    {
+      "id": 4,
+      "file": "inputs.py",
+      "line_numbers": [50,51,52],
+      "vulnerability_type": "Command Injection / Shell Execution",
+      "severity": "Critical",
+      "description": "Usage of subprocess.Popen with shell=True and user-supplied command may allow command injection.",
+      "fix_explanation": "Use Python's zipfile module and sanitize archive name to avoid invoking the shell.",
+      "secure_code_snippet": "with zipfile.ZipFile(archive_name, 'w') as zf: zf.write(DB_FILE)"
+    },
+    {
+      "id": 5,
+      "file": "inputs.py",
+      "line_numbers": [34,40],
+      "vulnerability_type": "SSRF / Unvalidated URL",
+      "severity": "High",
+      "description": "notify_url from user input is sent to requests.post without validation allowing SSRF to internal services.",
+      "fix_explanation": "Validate scheme (https) and restrict hostnames via ALLOWED_NOTIFY_HOSTS env var; use request timeouts.",
+      "secure_code_snippet": "parsed = urlparse(url); if parsed.scheme != 'https': raise ValueError('notify_url must use https')"
+    },
+    {
+      "id": 6,
+      "file": "inputs.py",
+      "line_numbers": [44,45,46],
+      "vulnerability_type": "Arbitrary File Read",
+      "severity": "Medium",
+      "description": "update_records opens an arbitrary file path provided by user which may allow reading sensitive files.",
+      "fix_explanation": "Restrict file access to a specific 'configs' directory and normalize path to prevent traversal.",
+      "secure_code_snippet": "base = os.path.abspath(os.path.join(os.path.dirname(__file__), 'configs'))"
+    },
+    {
+      "id": 7,
+      "file": "inputs.py",
+      "line_numbers": [87,88],
+      "vulnerability_type": "Debug Mode Enabled",
+      "severity": "Low",
+      "description": "Running Flask with debug=True in production can leak sensitive information and enable code execution.",
+      "fix_explanation": "Change debug mode to be controlled by an environment variable and default to False.",
+      "secure_code_snippet": "debug_mode = os.environ.get('FLASK_DEBUG','0') == '1'; app.run(debug=debug_mode)"
+    }
+  ]
+}
