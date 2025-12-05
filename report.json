@@ -1,0 +1,91 @@
+{
+  "summary": {
+    "total_vulnerabilities": 8,
+    "critical": 4,
+    "high": 2,
+    "medium": 1,
+    "low": 1
+  },
+  "details": [
+    {
+      "id": 1,
+      "file": "inputs.py",
+      "line_numbers": [11,12,13],
+      "vulnerability_type": "Hard-coded secrets / credentials",
+      "severity": "High",
+      "description": "Secrets (PAYMENT_TOKEN, MAIL_SERVER_KEY, INTERNAL_AUTH) are hard-coded in source, exposing sensitive credentials and making rotation difficult.",
+      "fix_explanation": "Move all sensitive values to environment variables and/or a secure secrets manager. The secure code reads PAYMENT_TOKEN, MAIL_SERVER_KEY and INTERNAL_AUTH from the environment and fails safely if missing.",
+      "secure_code_snippet": "PAYMENT_TOKEN = os.environ.get(\"PAYMENT_TOKEN\")\nMAIL_SERVER_KEY = os.environ.get(\"MAIL_SERVER_KEY\")\nINTERNAL_AUTH = os.environ.get(\"INTERNAL_AUTH\")"
+    },
+    {
+      "id": 2,
+      "file": "inputs.py",
+      "line_numbers": [24,25,26,27,28,29,30,31],
+      "vulnerability_type": "SQL Injection (string formatting in SQL)",
+      "severity": "Critical",
+      "description": "The code constructs SQL with string formatting using user-provided uid, allowing injection and data leakage.",
+      "fix_explanation": "Use parameterized queries so user input is passed as parameters instead of interpolated into SQL. Also validate uid type and use exceptions for errors.",
+      "secure_code_snippet": "q = \"SELECT id,name,balance FROM profiles WHERE id = ?\"\nc.execute(q, (uid,))"
+    },
+    {
+      "id": 3,
+      "file": "inputs.py",
+      "line_numbers": [34,35,36,37,38,39,40,41],
+      "vulnerability_type": "Server Side Request Forgery (SSRF)",
+      "severity": "Critical",
+      "description": "The application will make HTTP requests to any user-provided notify_url. This can be abused to reach internal services and exfiltrate data.",
+      "fix_explanation": "Validate and restrict notify endpoints. Require HTTPS, a configured host allow-list, limit request timeouts, and handle request exceptions gracefully.",
+      "secure_code_snippet": "parsed = urlparse(url)\nif parsed.scheme != 'https': raise ValueError('notify_url must be https')\nif parsed.hostname not in ALLOWED_NOTIFY_HOSTS: raise ValueError('notify_url host not allowed')\nresp = requests.post(url, json={...}, timeout=5)"
+    },
+    {
+      "id": 4,
+      "file": "inputs.py",
+      "line_numbers": [44,45,46,47],
+      "vulnerability_type": "Arbitrary File Read / Path Traversal",
+      "severity": "High",
+      "description": "The function update_records reads any file path supplied by the user, enabling reading of sensitive files (e.g., /etc/passwd).",
+      "fix_explanation": "Restrict config reads to a controlled configuration directory and verify paths using absolute resolution to prevent traversal or arbitrary reads.",
+      "secure_code_snippet": "cfg_path = os.path.abspath(path)\nif not cfg_path.startswith(os.path.abspath(ALLOWED_CONFIG_DIR) + os.sep): raise ValueError('access forbidden')\nwith open(cfg_path) as f: cfg = yaml.safe_load(f)"
+    },
+    {
+      "id": 5,
+      "file": "inputs.py",
+      "line_numbers": [50,51,52,53],
+      "vulnerability_type": "Command Injection / Shell execution",
+      "severity": "Critical",
+      "description": "export_data constructs a shell command using user-controlled 'name' and calls subprocess with shell=True, enabling arbitrary command execution.",
+      "fix_explanation": "Avoid shell calls and use the zipfile module to create zip archives safely; validate the name against an allowlist pattern before using.",
+      "secure_code_snippet": "if not _safe_filename(name): raise ValueError('invalid name')\nwith zipfile.ZipFile(out_name, 'w') as zf: zf.write(DB_FILE, arcname=os.path.basename(DB_FILE))"
+    },
+    {
+      "id": 6,
+      "file": "inputs.py",
+      "line_numbers": [18,19,20,21],
+      "vulnerability_type": "Weak hashing (MD5) for auth tokens",
+      "severity": "Medium",
+      "description": "auth_user uses MD5 hashing which is cryptographically weak and unsuitable for auth tokens. It's also combined with a hard-coded secret.",
+      "fix_explanation": "Use HMAC-SHA256 or a secure token library (or JWT) and read secrets from a protected environment instead of hard-coding.",
+      "secure_code_snippet": "digest = hmac.new(INTERNAL_AUTH.encode(), username.encode(), hashlib.sha256).hexdigest()"
+    },
+    {
+      "id": 7,
+      "file": "inputs.py",
+      "line_numbers": [87,88],
+      "vulnerability_type": "Debug mode enabled in production",
+      "severity": "Critical",
+      "description": "Running the Flask app with debug=True exposes the interactive debugger and remote code execution if reachable by attackers.",
+      "fix_explanation": "Control debug via environment variable and ensure debug mode is disabled in production deployments (default False).",
+      "secure_code_snippet": "debug = os.environ.get('DEBUG','false').lower() in ('1','true')\napp.run(debug=debug)"
+    },
+    {
+      "id": 8,
+      "file": "inputs.py",
+      "line_numbers": [34,37,38],
+      "vulnerability_type": "Insecure logging / information disclosure",
+      "severity": "Low",
+      "description": "The code prints transfer logs containing targets and amounts which could leak sensitive info to logs.",
+      "fix_explanation": "Use structured logging with appropriate log levels and avoid printing secrets. Scrub or classify logs so sensitive fields are not stored.",
+      "secure_code_snippet": "logger.info('transfer request for target=%s amount=%s', target, amount_f)  # don't log tokens"
+    }
+  ]
+}
