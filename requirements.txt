@@ -1,0 +1,6 @@
+Flask==2.3.3
+requests==2.31.0
+PyYAML==6.0
+argon2-cffi==21.3.0
+python-dotenv==1.0.0
+jsonschema==4.19.0

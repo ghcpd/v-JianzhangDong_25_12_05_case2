@@ -1,0 +1,81 @@
+{
+  "summary": {
+    "total_vulnerabilities": 7,
+    "critical": 3,
+    "high": 3,
+    "medium": 1,
+    "low": 0
+  },
+  "details": [
+    {
+      "id": 1,
+      "file": "inputs.py",
+      "line_numbers": [12, 13, 14],
+      "vulnerability_type": "Hardcoded Secrets / Credentials in Source Code",
+      "severity": "Critical",
+      "description": "API keys and authentication tokens are hardcoded directly in the source code. This exposes sensitive credentials to anyone with code repository access, increasing the risk of unauthorized API access and token misuse.",
+      "fix_explanation": "Move all sensitive credentials to environment variables using os.getenv(). This ensures secrets are not stored in version control and can be managed securely through environment configuration. Implement a .env file for local development (with .gitignore protection) and use proper secret management in production (e.g., AWS Secrets Manager, Azure Key Vault, HashiCorp Vault).",
+      "secure_code_snippet": "import os\nfrom dotenv import load_dotenv\n\nload_dotenv()\nPAYMENT_TOKEN = os.getenv('PAYMENT_TOKEN', '')\nMAIL_SERVER_KEY = os.getenv('MAIL_SERVER_KEY', '')\nINTERNAL_AUTH = os.getenv('INTERNAL_AUTH', '')\n\nif not all([PAYMENT_TOKEN, MAIL_SERVER_KEY, INTERNAL_AUTH]):\n    raise ValueError('Required environment variables are not set')"
+    },
+    {
+      "id": 2,
+      "file": "inputs.py",
+      "line_numbers": [25],
+      "vulnerability_type": "SQL Injection",
+      "severity": "Critical",
+      "description": "User-controlled input (uid) is directly concatenated into an SQL query string without parameterization. An attacker can inject arbitrary SQL code to extract, modify, or delete database records.",
+      "fix_explanation": "Use parameterized queries (prepared statements) with placeholders. This separates SQL code from user input, preventing SQL injection attacks. Replace string formatting with the ? placeholder for sqlite3.",
+      "secure_code_snippet": "def query_profile(uid):\n    conn = sqlite3.connect(DB_FILE)\n    c = conn.cursor()\n    c.execute('SELECT id,name,balance FROM profiles WHERE id = ?', (uid,))\n    data = c.fetchall()\n    conn.close()\n    return data"
+    },
+    {
+      "id": 3,
+      "file": "inputs.py",
+      "line_numbers": [42],
+      "vulnerability_type": "Command Injection / Unsafe Subprocess Execution",
+      "severity": "Critical",
+      "description": "The export_data function uses subprocess.Popen with shell=True and user-controlled input (name). An attacker can inject shell commands to execute arbitrary code on the server.",
+      "fix_explanation": "Use subprocess.run (or subprocess.Popen) with shell=False and pass arguments as a list. This prevents shell interpretation of special characters and avoids command injection vulnerabilities. Validate input to ensure it contains only safe characters.",
+      "secure_code_snippet": "import shlex\n\ndef export_data(name):\n    # Validate name to contain only alphanumeric characters, underscores, and hyphens\n    if not re.match(r'^[a-zA-Z0-9_-]+$', name):\n        raise ValueError('Invalid export name')\n    \n    output_file = f'{name}.zip'\n    try:\n        result = subprocess.run(\n            ['zip', output_file, DB_FILE],\n            shell=False,\n            capture_output=True,\n            timeout=30,\n            check=True\n        )\n        return True\n    except subprocess.CalledProcessError as e:\n        logging.error(f'Export failed: {e}')\n        return False"
+    },
+    {
+      "id": 4,
+      "file": "inputs.py",
+      "line_numbers": [37],
+      "vulnerability_type": "Path Traversal / Directory Traversal",
+      "severity": "High",
+      "description": "The update_records function accepts a file path from user input without validation. An attacker could use path traversal sequences (../) to read or write files outside the intended directory.",
+      "fix_explanation": "Implement strict input validation for file paths. Use os.path.abspath() to resolve the absolute path and verify it stays within an allowed directory. Alternatively, maintain a whitelist of allowed configuration files.",
+      "secure_code_snippet": "import os\nfrom pathlib import Path\n\nCONFIG_DIR = os.path.abspath('config')\n\ndef update_records(filename):\n    # Only allow filenames, not paths\n    if '/' in filename or '\\\\' in filename or filename.startswith('.'):\n        raise ValueError('Invalid filename')\n    \n    filepath = os.path.join(CONFIG_DIR, filename)\n    filepath = os.path.abspath(filepath)\n    \n    # Verify the resolved path is within the allowed directory\n    if not filepath.startswith(CONFIG_DIR):\n        raise ValueError('Path traversal detected')\n    \n    with open(filepath) as f:\n        cfg = yaml.safe_load(f)\n    return cfg"
+    },
+    {
+      "id": 5,
+      "file": "inputs.py",
+      "line_numbers": [12, 13, 14],
+      "vulnerability_type": "Information Disclosure / Sensitive Data Exposure",
+      "severity": "High",
+      "description": "Production API keys and internal authentication secrets are visible in the source code. Any person with repository access, code reviewers, or those with access to deployment systems can view these credentials.",
+      "fix_explanation": "As per vulnerability #1, move credentials to environment variables. Additionally, implement secret scanning in CI/CD pipelines to detect accidental commits of secrets and use git-secrets or similar tools for local pre-commit hooks.",
+      "secure_code_snippet": "# Use environment variables (see vulnerability #1 for full implementation)\n# Add to .gitignore:\n# .env\n# .env.local\n# Add pre-commit hook to scan for secrets"
+    },
+    {
+      "id": 6,
+      "file": "inputs.py",
+      "line_numbers": [20],
+      "vulnerability_type": "Weak Cryptographic Hash Function",
+      "severity": "High",
+      "description": "MD5 is used for authentication/security-critical hashing. MD5 is cryptographically broken and should never be used for security purposes. It is vulnerable to collision attacks.",
+      "fix_explanation": "Replace MD5 with a modern, secure hashing algorithm. For authentication, use bcrypt, Argon2, or scrypt with proper salt generation. These algorithms are designed specifically for security-critical operations.",
+      "secure_code_snippet": "from argon2 import PasswordHasher\n\ndef auth_user(info):\n    username = info.get('username', '')\n    # In production, retrieve the stored hash from database\n    # For demonstration, use a secure hash\n    ph = PasswordHasher()\n    try:\n        # Verify against stored hash (not shown for brevity)\n        hashed = ph.hash(username)\n        return hashed\n    except Exception as e:\n        logging.error(f'Auth error: {e}')\n        return None"
+    },
+    {
+      "id": 7,
+      "file": "inputs.py",
+      "line_numbers": [37],
+      "vulnerability_type": "Unsafe Deserialization / Insecure YAML Loading",
+      "severity": "Medium",
+      "description": "While yaml.safe_load() is used (which is safe), there's no validation of the loaded configuration data. Additionally, there's no file existence check or error handling for malformed YAML.",
+      "fix_explanation": "Add comprehensive input validation and error handling. Validate the structure and content of loaded YAML. Implement a schema validator (e.g., jsonschema) to ensure configuration conforms to expected structure.",
+      "secure_code_snippet": "import yaml\nfrom jsonschema import validate, ValidationError\n\nCONFIG_SCHEMA = {\n    'type': 'object',\n    'properties': {\n        'setting1': {'type': 'string'},\n        'setting2': {'type': 'integer'}\n    },\n    'required': ['setting1']\n}\n\ndef update_records(filename):\n    try:\n        with open(filepath) as f:\n            cfg = yaml.safe_load(f)\n        # Validate against schema\n        validate(instance=cfg, schema=CONFIG_SCHEMA)\n        return cfg\n    except FileNotFoundError:\n        logging.error(f'Config file not found: {filepath}')\n        return None\n    except yaml.YAMLError as e:\n        logging.error(f'Invalid YAML: {e}')\n        return None\n    except ValidationError as e:\n        logging.error(f'Config validation failed: {e}')\n        return None"
+    }
+  ]
+}
