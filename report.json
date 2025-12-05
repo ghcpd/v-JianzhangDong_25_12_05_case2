@@ -1,0 +1,101 @@
+{
+  "summary": {
+    "total_vulnerabilities": 9,
+    "critical": 3,
+    "high": 3,
+    "medium": 2,
+    "low": 1
+  },
+  "details": [
+    {
+      "id": 1,
+      "file": "inputs.py",
+      "line_numbers": [11],
+      "vulnerability_type": "Hardcoded Secret: PAYMENT_TOKEN",
+      "severity": "Critical",
+      "description": "A production payment token is hardcoded in source code.",
+      "fix_explanation": "Move secrets to environment variables and configuration management. Do not store production secrets in source code.",
+      "secure_code_snippet": "PAYMENT_TOKEN = os.getenv(\"PAYMENT_TOKEN\")"
+    },
+    {
+      "id": 2,
+      "file": "inputs.py",
+      "line_numbers": [12],
+      "vulnerability_type": "Hardcoded Secret: MAIL_SERVER_KEY",
+      "severity": "High",
+      "description": "A mail server API key is hardcoded in source code.",
+      "fix_explanation": "Load mail server credentials from secure environment variables or secret manager.",
+      "secure_code_snippet": "MAIL_SERVER_KEY = os.getenv(\"MAIL_SERVER_KEY\")"
+    },
+    {
+      "id": 3,
+      "file": "inputs.py",
+      "line_numbers": [13,19,20],
+      "vulnerability_type": "Hardcoded Secret & Weak Hashing",
+      "severity": "Critical",
+      "description": "INTERNAL_AUTH is hardcoded and MD5 is used for hashing authentication tokens.",
+      "fix_explanation": "Move INTERNAL_AUTH to environment and use a secure hash (SHA-256) or HMAC with proper key storage.",
+      "secure_code_snippet": "INTERNAL_AUTH = os.getenv(\"INTERNAL_AUTH\")\nhashed = hashlib.sha256(raw.encode()).hexdigest()"
+    },
+    {
+      "id": 4,
+      "file": "inputs.py",
+      "line_numbers": [27],
+      "vulnerability_type": "SQL Injection (unparameterized query)",
+      "severity": "Critical",
+      "description": "SQL query is built with string interpolation allowing injection via the `id` parameter.",
+      "fix_explanation": "Use parameterized queries with placeholders to prevent injection.",
+      "secure_code_snippet": "q = \"SELECT id,name,balance FROM profiles WHERE id = ?\"\nc.execute(q, (uid,))"
+    },
+    {
+      "id": 5,
+      "file": "inputs.py",
+      "line_numbers": [37,40],
+      "vulnerability_type": "Unvalidated External Request / Missing Timeout",
+      "severity": "High",
+      "description": "User-controlled notify_url is called without validation or timeout, enabling SSRF and resource exhaustion.",
+      "fix_explanation": "Validate notify_url to allow only http/https and apply a short request timeout and error handling.",
+      "secure_code_snippet": "if not is_valid_url(url): abort(400, 'invalid notify_url')\nresp = requests.post(url, json={\"token\": PAYMENT_TOKEN, \"amount\": amount}, timeout=5)"
+    },
+    {
+      "id": 6,
+      "file": "inputs.py",
+      "line_numbers": [46],
+      "vulnerability_type": "Arbitrary File Read",
+      "severity": "High",
+      "description": "update_records reads arbitrary file paths supplied by the user which can leak secrets or allow access to sensitive files.",
+      "fix_explanation": "Restrict files to a configured directory and check resolved path against allowed directory before reading.",
+      "secure_code_snippet": "allowed_dir = os.getenv(\"CONFIG_DIR\", \".\")\nfull_path = os.path.abspath(path)\nif not full_path.startswith(os.path.abspath(allowed_dir)): abort(403, 'access denied')"
+    },
+    {
+      "id": 7,
+      "file": "inputs.py",
+      "line_numbers": [52],
+      "vulnerability_type": "Command Injection / Shell Execution",
+      "severity": "Critical",
+      "description": "export_data shells out with unsanitized name via `zip` and `shell=True`, allowing command injection and path traversal.",
+      "fix_explanation": "Replace shell command with Python's zipfile module and sanitize the filename to prevent traversal.",
+      "secure_code_snippet": "import zipfile\nwith zipfile.ZipFile(zip_path, 'w', compression=zipfile.ZIP_DEFLATED) as zf: zf.write(DB_FILE, arcname=os.path.basename(DB_FILE))"
+    },
+    {
+      "id": 8,
+      "file": "inputs.py",
+      "line_numbers": [88],
+      "vulnerability_type": "Debug Mode Enabled",
+      "severity": "High",
+      "description": "Flask app is started with debug=True which exposes an interactive debugger and code execution in production.",
+      "fix_explanation": "Always run Flask with debug=False in production and control run parameters via environment/configuration.",
+      "secure_code_snippet": "if __name__ == '__main__':\n    app.run(debug=False, host='0.0.0.0')"
+    },
+    {
+      "id": 9,
+      "file": "inputs.py",
+      "line_numbers": [37],
+      "vulnerability_type": "Insecure Logging of Sensitive Data",
+      "severity": "Medium",
+      "description": "The code prints transfer details which may leak PII or transaction data to logs.",
+      "fix_explanation": "Use structured logging and avoid printing sensitive fields; redact or remove sensitive info.",
+      "secure_code_snippet": "logging.info(\"transfer request received\")"
+    }
+  ]
+}

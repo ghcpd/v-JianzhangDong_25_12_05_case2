@@ -1,0 +1,24 @@
+
+[2025-12-05T07:57:35.140867Z] DETECTED_ENV: Windows
+[2025-12-05T07:57:35.141852Z] RUN: ['python', 'security_test_runner.py', 'input_backup.py']
+Running static checks on input_backup.py
+Static check failures:
+- Hardcoded PAYMENT_TOKEN
+- Hardcoded MAIL_SERVER_KEY
+- Hardcoded INTERNAL_AUTH
+- Use of MD5
+- Possible SQL string formatting
+- Use of subprocess with shell=True
+- Flask debug mode enabled
+
+[2025-12-05T07:57:35.255428Z] TEST FAILED (file=input_backup.py, exit=1)
+
+[2025-12-05T07:57:35.255980Z] RUN: ['python', 'security_test_runner.py', 'inputs.py']
+INFO:root:transfer:t:1
+Running static checks on inputs.py
+Static checks passed; importing module for dynamic checks
+All security checks passed for inputs.py
+
+[2025-12-05T07:57:35.830805Z] TEST PASSED (file=inputs.py, exit=0)
+
+[2025-12-05T07:57:35.831395Z] OVERALL: TEST FAILED
